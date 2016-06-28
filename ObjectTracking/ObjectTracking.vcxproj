@@ -65,6 +65,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="20100624condensation.cpp" />
+    <ClCompile Include="Kalmanfilter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="KalmanFilter.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,6 +9,9 @@
 #include <opencv2\legacy\legacy.hpp>
 #include <ctype.h>
 #include <math.h>
+#include <atltime.h>
+
+#include "KalmanFilter.h"
 
 int filterhue;
 float sigma =40;
@@ -35,6 +38,9 @@ cv::KalmanFilter kalman(4, 2, 0);
 //閾値
 int thresh = 10;
 
+//処理時間計測用
+CFileTime cTimeStart, cTimeEnd;
+CFileTimeSpan cTimeSpan;
 
 //RGB->HSVの変換
 void RGBtoHSV(int r, int g, int b, int* h, int* s, int* v)
@@ -121,11 +127,11 @@ void _onMouse( int event, int x, int y, int flags, void* param )
     if( event == CV_EVENT_LBUTTONDOWN )
     {
 		//カルマンフィルタの初期値
-		kalman.statePre.at<float>(0) = initx;
-		kalman.statePre.at<float>(1) = inity;
+		//kalman.statePre.at<float>(0) = initx;
+		//kalman.statePre.at<float>(1) = inity;
 
 		//最初に一回予測
-		cv::Mat prediction = kalman.predict();
+		//cv::Mat prediction = kalman.predict();
 
 		int r,g,b,count;
 		int sumR, sumG, sumB;
@@ -168,165 +174,163 @@ void _onMouse( int event, int x, int y, int flags, void* param )
     }
 }
 
-////particle filter
-//int main (int argc, char **argv)
-//{
-//	int i, c;
-//	double w = 0.0, h = 0.0;
-//	cv::VideoCapture capture(0);
-//	//CvCapture *capture = 0;
-//	//capture = cvCreateCameraCapture (0);
-//
-//	  int n_stat = 4;
-//	  int n_particle = 4000;
-//	  CvConDensation *cond = 0;
-//	  CvMat *lowerBound = 0;
-//	  CvMat *upperBound = 0;
-//	  int xx, yy;
-//
-//	  capture >> capframe;
-//
-//	//１フレームキャプチャし，キャプチャサイズを取得する．
-//	//frame = cvQueryFrame (capture);
-//	//redimage=cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1);
-//	//greenimage=cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1);
-//	//blueimage=cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1);
-//	w = capframe.cols;
-//	h = capframe.rows;
-//	//w = frame->width;
-//    //h = frame->height;
-//	cv::namedWindow("Condensation", CV_WINDOW_AUTOSIZE);
-//	cv::setMouseCallback("Condensation", on_mouse, 0);
-//	//cvNamedWindow ("Condensation", CV_WINDOW_AUTOSIZE);
-//	//cvSetMouseCallback("Condensation",on_mouse,0);
-// 
-// 	//フォントの設定
-//	//CvFont dfont;
-//	//float hscale      = 0.7f;
-//	//float vscale      = 0.7f;
-//	//float italicscale = 0.0f;
-//	//int  thickness    = 1;
-//	//char text[255] = "";
-//	//cvInitFont (&dfont, CV_FONT_HERSHEY_SIMPLEX , hscale, vscale, italicscale, thickness, CV_AA); 
-//
-//	//Condensation構造体を作成する．
-//	cond = cvCreateConDensation (n_stat, 0, n_particle);
-//
-//	//状態ベクトル各次元の取りうる最小値・最大値を指定する
-//	//今回は位置(x,y)と速度(xpixcel/frame,ypixcel/frame)の4次元
-//	lowerBound = cvCreateMat (4, 1, CV_32FC1);
-//	upperBound = cvCreateMat (4, 1, CV_32FC1);
-//	cvmSet (lowerBound, 0, 0, 0.0);
-//	cvmSet (lowerBound, 1, 0, 0.0);
-//	cvmSet (lowerBound, 2, 0, -20.0);
-//	cvmSet (lowerBound, 3, 0, -20.0);
-//	cvmSet (upperBound, 0, 0, w);
-//	cvmSet (upperBound, 1, 0, h);
-//	cvmSet (upperBound, 2, 0, 20.0);
-//	cvmSet (upperBound, 3, 0, 20.0);
-//  
-//	//Condensation構造体を初期化する
-//	cvConDensInitSampleSet (cond, lowerBound, upperBound);
-//
-//	//ConDensationアルゴリズムにおける状態ベクトルのダイナミクスを指定する
-//	cond->DynamMatr[0] = 1.0;
-//	cond->DynamMatr[1] = 0.0;
-//	cond->DynamMatr[2] = 1.0;
-//	cond->DynamMatr[3] = 0.0;
-//	cond->DynamMatr[4] = 0.0;
-//	cond->DynamMatr[5] = 1.0;
-//	cond->DynamMatr[6] = 0.0;
-//	cond->DynamMatr[7] = 1.0;
-//	cond->DynamMatr[8] = 0.0;
-//	cond->DynamMatr[9] = 0.0;
-//	cond->DynamMatr[10] = 1.0;
-//	cond->DynamMatr[11] = 0.0;
-//	cond->DynamMatr[12] = 0.0;
-//	cond->DynamMatr[13] = 0.0;
-//	cond->DynamMatr[14] = 0.0;
-//	cond->DynamMatr[15] = 1.0;
-//  
-//	//ノイズパラメータを再設定する．
-//	cvRandInit (&(cond->RandS[0]), -25, 25, (int) cvGetTickCount ());
-//	cvRandInit (&(cond->RandS[1]), -25, 25, (int) cvGetTickCount ());
-//	cvRandInit (&(cond->RandS[2]), -5, 5, (int) cvGetTickCount ());
-//	cvRandInit (&(cond->RandS[3]), -5, 5, (int) cvGetTickCount ());
-//	
-//	while (1) 
-//	{
-//		capture >> capframe;
-//		//frame = cvQueryFrame (capture);
-//
-//
-//		//各パーティクルについて尤度を計算する．
-//		for (i = 0; i < n_particle; i++)
-//		{ 
-//			xx = (int) (cond->flSamples[i][0]);
-//			yy = (int) (cond->flSamples[i][1]);
-//			 if (xx < 0 || xx >= w || yy < 0 || yy >= h) 
-//				{  
-//					cond->flConfidence[i] = 0.0;
-//				}
-//				else
-//				{  
-//					cond->flConfidence[i] = calc_likelihood (capframe, xx, yy);
-//					//cond->flConfidence[i] = calc_likelihood (frame, xx, yy);
-//				
-//					cv::circle(capframe, cv::Point(xx, yy), 1, CV_RGB(0, 255, 200));
-//					//cvCircle (frame, cvPoint (xx, yy), 1, CV_RGB (0, 255, 200), -1);
-//				}	 
-//		}
-//
-//		//重みの総和&重心を求める
-//		double wx = 0, wy = 0;
-//		double sumWeight = 0;
-//		for (i = 0; i < n_particle; i++)
-//		{
-//			sumWeight += cond->flConfidence[i];
-//		}
-//		for (i = 0; i < n_particle; i++)
-//		{
-//			wx += xx * (cond->flConfidence[i] / sumWeight);
-//			wy += yy * (cond->flConfidence[i] / sumWeight);
-//		}
-//
-//		//重心表示
-//		cv::circle(capframe, cv::Point((int)wx, (int)wy), 10, cv::Scalar(0, 0, 255));
-//		cv::circle(capframe, cv::Point(20, 20), 10, CV_RGB(red, green, blue), 6);
-//		cv::putText(capframe, "target", cv::Point(0, 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, CV_RGB(red, green, blue));
-//		cv::imshow("Condensation", capframe);
-//
-//		//cvCircle(frame,cvPoint(20,20),10,CV_RGB(red,green,blue),-1);
-//		//cvPutText(frame,"target",cvPoint(0,50),&dfont,CV_RGB(red,green,blue));
-//		//cvShowImage ("Condensation", frame);
-//		
-//		c = cv::waitKey(30);
-//		//c = cvWaitKey (30);
-//		if (c == 27)      break;
-//  
-//		//次のモデルの状態を推定する 
-//		cvConDensUpdateByTime (cond);
-//
-//	}
-//
-//	cv::destroyWindow("Condensation");
-//	//cvDestroyWindow ("Condensation");
-//	//cvReleaseCapture (&capture);
-//
-//	//cvReleaseImage(&redimage);
-//	//cvReleaseImage(&greenimage);
-//	//cvReleaseImage(&blueimage);
-//	cvReleaseConDensation (&cond);
-//
-//	cvReleaseMat (&lowerBound);
-//	cvReleaseMat (&upperBound);
-//
-//	return 0;
-//}
+//パーティクルフィルタ
+void particleFilter()
+{
+	int i, c;
+	double w = 0.0, h = 0.0;
+	cv::VideoCapture capture(0);
+	//CvCapture *capture = 0;
+	//capture = cvCreateCameraCapture (0);
 
-//kalman filter
-int main (int argc, char **argv){
+	  int n_stat = 4;
+	  int n_particle = 4000;
+	  CvConDensation *cond = 0;
+	  CvMat *lowerBound = 0;
+	  CvMat *upperBound = 0;
+	  int xx, yy;
 
+	  capture >> capframe;
+
+	//１フレームキャプチャし，キャプチャサイズを取得する．
+	//frame = cvQueryFrame (capture);
+	//redimage=cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1);
+	//greenimage=cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1);
+	//blueimage=cvCreateImage(cvGetSize(frame),IPL_DEPTH_8U,1);
+	w = capframe.cols;
+	h = capframe.rows;
+	//w = frame->width;
+    //h = frame->height;
+	cv::namedWindow("Condensation", CV_WINDOW_AUTOSIZE);
+	cv::setMouseCallback("Condensation", on_mouse, 0);
+	//cvNamedWindow ("Condensation", CV_WINDOW_AUTOSIZE);
+	//cvSetMouseCallback("Condensation",on_mouse,0);
+ 
+ 	//フォントの設定
+	//CvFont dfont;
+	//float hscale      = 0.7f;
+	//float vscale      = 0.7f;
+	//float italicscale = 0.0f;
+	//int  thickness    = 1;
+	//char text[255] = "";
+	//cvInitFont (&dfont, CV_FONT_HERSHEY_SIMPLEX , hscale, vscale, italicscale, thickness, CV_AA); 
+
+	//Condensation構造体を作成する．
+	cond = cvCreateConDensation (n_stat, 0, n_particle);
+
+	//状態ベクトル各次元の取りうる最小値・最大値を指定する
+	//今回は位置(x,y)と速度(xpixcel/frame,ypixcel/frame)の4次元
+	lowerBound = cvCreateMat (4, 1, CV_32FC1);
+	upperBound = cvCreateMat (4, 1, CV_32FC1);
+	cvmSet (lowerBound, 0, 0, 0.0);
+	cvmSet (lowerBound, 1, 0, 0.0);
+	cvmSet (lowerBound, 2, 0, -20.0);
+	cvmSet (lowerBound, 3, 0, -20.0);
+	cvmSet (upperBound, 0, 0, w);
+	cvmSet (upperBound, 1, 0, h);
+	cvmSet (upperBound, 2, 0, 20.0);
+	cvmSet (upperBound, 3, 0, 20.0);
+  
+	//Condensation構造体を初期化する
+	cvConDensInitSampleSet (cond, lowerBound, upperBound);
+
+	//ConDensationアルゴリズムにおける状態ベクトルのダイナミクスを指定する
+	cond->DynamMatr[0] = 1.0;
+	cond->DynamMatr[1] = 0.0;
+	cond->DynamMatr[2] = 1.0;
+	cond->DynamMatr[3] = 0.0;
+	cond->DynamMatr[4] = 0.0;
+	cond->DynamMatr[5] = 1.0;
+	cond->DynamMatr[6] = 0.0;
+	cond->DynamMatr[7] = 1.0;
+	cond->DynamMatr[8] = 0.0;
+	cond->DynamMatr[9] = 0.0;
+	cond->DynamMatr[10] = 1.0;
+	cond->DynamMatr[11] = 0.0;
+	cond->DynamMatr[12] = 0.0;
+	cond->DynamMatr[13] = 0.0;
+	cond->DynamMatr[14] = 0.0;
+	cond->DynamMatr[15] = 1.0;
+  
+	//ノイズパラメータを再設定する．
+	cvRandInit (&(cond->RandS[0]), -25, 25, (int) cvGetTickCount ());
+	cvRandInit (&(cond->RandS[1]), -25, 25, (int) cvGetTickCount ());
+	cvRandInit (&(cond->RandS[2]), -5, 5, (int) cvGetTickCount ());
+	cvRandInit (&(cond->RandS[3]), -5, 5, (int) cvGetTickCount ());
+	
+	while (1) 
+	{
+		capture >> capframe;
+		//frame = cvQueryFrame (capture);
+
+
+		//各パーティクルについて尤度を計算する．
+		for (i = 0; i < n_particle; i++)
+		{ 
+			xx = (int) (cond->flSamples[i][0]);
+			yy = (int) (cond->flSamples[i][1]);
+			 if (xx < 0 || xx >= w || yy < 0 || yy >= h) 
+				{  
+					cond->flConfidence[i] = 0.0;
+				}
+				else
+				{  
+					cond->flConfidence[i] = calc_likelihood (capframe, xx, yy);
+					//cond->flConfidence[i] = calc_likelihood (frame, xx, yy);
+				
+					cv::circle(capframe, cv::Point(xx, yy), 1, CV_RGB(0, 255, 200));
+					//cvCircle (frame, cvPoint (xx, yy), 1, CV_RGB (0, 255, 200), -1);
+				}	 
+		}
+
+		//重みの総和&重心を求める
+		double wx = 0, wy = 0;
+		double sumWeight = 0;
+		for (i = 0; i < n_particle; i++)
+		{
+			sumWeight += cond->flConfidence[i];
+		}
+		for (i = 0; i < n_particle; i++)
+		{
+			wx += (int) (cond->flSamples[i][0]) * (cond->flConfidence[i] / sumWeight);
+			wy += (int) (cond->flSamples[i][1]) * (cond->flConfidence[i] / sumWeight);
+		}
+
+		//重心表示
+		cv::circle(capframe, cv::Point((int)wx, (int)wy), 10, cv::Scalar(0, 0, 255));
+		cv::circle(capframe, cv::Point(20, 20), 10, CV_RGB(red, green, blue), 6);
+		cv::putText(capframe, "target", cv::Point(0, 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, CV_RGB(red, green, blue));
+		cv::imshow("Condensation", capframe);
+
+		//cvCircle(frame,cvPoint(20,20),10,CV_RGB(red,green,blue),-1);
+		//cvPutText(frame,"target",cvPoint(0,50),&dfont,CV_RGB(red,green,blue));
+		//cvShowImage ("Condensation", frame);
+		
+		c = cv::waitKey(30);
+		//c = cvWaitKey (30);
+		if (c == 27)      break;
+  
+		//次のモデルの状態を推定する 
+		cvConDensUpdateByTime (cond);
+
+	}
+
+	cv::destroyWindow("Condensation");
+	//cvDestroyWindow ("Condensation");
+	//cvReleaseCapture (&capture);
+
+	//cvReleaseImage(&redimage);
+	//cvReleaseImage(&greenimage);
+	//cvReleaseImage(&blueimage);
+	cvReleaseConDensation (&cond);
+
+	cvReleaseMat (&lowerBound);
+	cvReleaseMat (&upperBound);
+}
+
+//カルマンフィルタ
+void kalmanFilter()
+{
 	cv::VideoCapture capture(0);
 
 	//x,y,vx,vy
@@ -411,6 +415,93 @@ int main (int argc, char **argv){
         cvWaitKey(1);
  
     }
+}
+
+//カルマンフィルタクラステスト
+void KFtest()
+{
+	cv::VideoCapture capture(0);
+
+	cv::namedWindow("KalmanFilter", CV_WINDOW_AUTOSIZE);
+	cv::setMouseCallback("KalmanFilter", _onMouse, 0);
+
+	Kalmanfilter kf(6, 2, 0, 0.03);
+	kf.initKalmanfilter();
+
+	// メインループ
+    while (!GetAsyncKeyState(VK_ESCAPE)) {
+
+		//処理時間計測開始
+		cTimeStart = CFileTime::GetCurrentTime();// 現在時刻
+
+        // 画像を取得
+		capture >> capframe;
+		cv::Mat image = capframe.clone();
+ 
+
+		//std::cout << "HSV: (" << h << ", " << s << ", " << v << ")\n";
+
+		//クリックした点のRGBと近い画素を探索し、その重心を求める
+		int sumX =0, sumY = 0, counter = 0;
+
+		for(int y = 0; y < image.rows; y++)
+			for(int x = 0; x < image.cols; x++)
+			{
+				//RGBの差分が閾値以内ならカウント
+				if(sqrt((red - image.at<cv::Vec3b>(y,x)[2]) * (red - image.at<cv::Vec3b>(y,x)[2]) +
+						  (green - image.at<cv::Vec3b>(y,x)[1]) * (green - image.at<cv::Vec3b>(y,x)[1]) +
+						  (blue - image.at<cv::Vec3b>(y,x)[0]) * (blue - image.at<cv::Vec3b>(y,x)[0])) <= thresh)
+				{
+					//色付け
+					image.at<cv::Vec3b>(y,x)[2] = 255;
+
+					sumX += x;
+					sumY += y;
+					counter++;
+				}
+			}
+ 
+		if(counter > 0)
+		{
+			//観測値
+			int mx = (int)(sumX/counter);
+			int my = (int)(sumY/counter);
+			cv::Mat translation_measured(2, 1, CV_64F);
+			translation_measured.at<double>(0, 0) = mx;
+			translation_measured.at<double>(1, 0) = my;
+			
+			cv::Mat measurement(2, 1, CV_64F);
+			kf.fillMeasurements(measurement, translation_measured);
+
+			// Instantiate estimated translation and rotation
+			cv::Mat translation_estimated(2, 1, CV_64F);
+			// update the Kalman filter with good measurements
+			kf.updateKalmanfilter(measurement, translation_estimated);
+
+			//表示
+			cv::circle(image, cv::Point(mx, my), 10, cv::Scalar(0, 0, 255));
+			cv::circle(image, cv::Point(translation_estimated.at<double>(0, 0), translation_estimated.at<double>(1,0)), 10, cv::Scalar(0, 255, 0));
+        }
+
+
+		cv::putText(image,"target", cv::Point(0, 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, CV_RGB(red, green, blue));
+  
+		//std::cout << (int)red << ", " << (int)green << ", " <<  (int)blue << std::endl;
+		cv::imshow("KalmanFilter", image);
+        cvWaitKey(1);
+
+		cTimeEnd = CFileTime::GetCurrentTime();
+		cTimeSpan = cTimeEnd - cTimeStart;
+		std::cout<< "1frame処理時間:" << cTimeSpan.GetTimeSpan()/10000 << "[ms]" << std::endl;
+    }
+}
+
+int main (int argc, char **argv){
+
+	//kalmanFilter();
+	//particleFilter();
+
+	KFtest();
 
 	return 0;
 }
